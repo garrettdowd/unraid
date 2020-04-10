@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# This script is an example of using exiftool to organize and rename photos. Very useful to import photos from SD/CF cards.
+
+IMPORT="/mnt/user/filedrop/DSLR/"
+
+exiftool -progress "-FileName<FileModifyDate" "-FileName<DateCreated" "-FileName<CreateDate" -d "/mnt/user/Photos/Library/DSLR/%Y/%Y-%m-%d/%Y-%m-%d-(%%c).%%e" -r -v -ext CR2 -ext JPG "$IMPORT"
+exiftool -progress "-FileName<FileModifyDate" "-FileName<DateCreated" "-FileName<CreateDate" -d "/mnt/user/Video/Library/DSLR/%Y/%Y-%m-%d/%Y-%m-%d-(%%c).%%e" -r -v -ext MP4 -ext MOV "$IMPORT"
+
+# Flatten the import directory and moved any extra files into a folder
+# https://unix.stackexchange.com/questions/52814/flattening-a-nested-directory
+# find "$IMPORT" -maxdepth 1 -type f -delete
+find "$IMPORT" -mindepth 2 -type f -exec mv -t "$IMPORT" -n '{}' +
+find "$IMPORT" -mindepth 1 -maxdepth 1 -type d ! -regex '"$IMPORT"not_imported' -delete
+find "$IMPORT" -maxdepth 1 -type f -exec mv -t "$IMPORT"not_imported -n '{}' +

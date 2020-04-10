@@ -1,0 +1,84 @@
+#!/bin/bash
+
+if [ -z ${RULES_FILE+x} ]; then
+	logger -s -t$NOTIFY_NAME -- No filtering rules defined
+else
+	logger -s -t$NOTIFY_NAME -- Following rules defined
+    logger -s -t$NOTIFY_NAME `cat $RULES_FILE | tr '\r\n' ' '`
+fi
+
+/usr/local/emhttp/webGui/scripts/notify -e "Unraid Server Notice" -s "$NOTIFY_NAME" -d "Starting Sync" -i "normal"
+logger rclone started -t$NOTIFY_NAME
+
+SECONDS=0
+cdate=`date +"_%Y-%m-%d--%T" | tr ':' '-'` # get date and format it
+cstate1="$(rclone size "$DEST")" # get size of DEST before transfer
+if [ -z ${ARCHIVE+x} ]; then
+	logger -s -t$NOTIFY_NAME -- No ARCHIVE directory defined
+	astate1="0 Bytes 0 Total Size"
+	astate2="0 Bytes 0 Total Size"
+        if [ -z ${RULES_FILE+x} ]; then
+                logger -s -t$NOTIFY_NAME -- No RULES_FILE defined
+                rclone sync "$SOURCE" "$DEST" \
+                    --verbose \
+                    --drive-alternate-export
+        else
+                rclone sync "$SOURCE" "$DEST" \
+                    --verbose \
+                    --drive-alternate-export \
+                    --filter-from "$RULES_FILE"
+        fi
+else
+	logger -s -t$NOTIFY_NAME -- ARCHIVE directory defined $ARCHIVE
+	astate1="$(rclone size "$ARCHIVE")" # get size of ARCHIVE before transfer
+        if [ -z ${RULES_FILE+x} ]; then
+                rclone sync "$SOURCE" "$DEST" \
+                    --verbose \
+                    --drive-alternate-export \
+                    --backup-dir "$ARCHIVE" --suffix "$cdate" --suffix-keep-extension
+        else
+                rclone sync "$SOURCE" "$DEST" \
+                    --verbose \
+                    --drive-alternate-export \
+                    --filter-from "$RULES_FILE" \
+                    --backup-dir "$ARCHIVE" --suffix "$cdate" --suffix-keep-extension
+        fi
+	astate2="$(rclone size "$ARCHIVE")" # get size of ARCHIVE after transfer
+fi
+
+ctime=$SECONDS
+min=$(($ctime / 60))
+sec=$(($ctime % 60))
+
+cstate2="$(rclone size "$DEST")" # get size of DEST after transfer
+
+
+# Calculate the size of the transfer using the before and after states
+regex="([0-9]*)(^|\W)Bytes($|\W)" # get number of bytes in DEST and archive
+[[ "$cstate2" =~ $regex ]]
+cbyte="${BASH_REMATCH[1]}"
+[[ "$cstate1" =~ $regex ]]
+cbyte=$((cbyte-BASH_REMATCH[1]))
+[[ "$astate2" =~ $regex ]]
+abyte="${BASH_REMATCH[1]}"
+[[ "$astate1" =~ $regex ]]
+abyte=$((abyte-BASH_REMATCH[1]))
+
+
+regex="([0-9]*)(^|\W)Total size($|\W)" # get number of items in DEST and archive
+[[ "$cstate2" =~ $regex ]]
+cnum="${BASH_REMATCH[1]}"
+[[ "$cstate1" =~ $regex ]]
+cnum=$((cnum-BASH_REMATCH[1]))
+[[ "$astate2" =~ $regex ]]
+anum="${BASH_REMATCH[1]}"
+[[ "$astate1" =~ $regex ]]
+anum=$((anum-BASH_REMATCH[1]))
+
+logger -s -t$NOTIFY_NAME -- Completed in $min minutes and $sec seconds 
+
+totalByte=`numfmt --to=iec-i --suffix=B --padding=7 $((cbyte))` # converting it to human readable
+archive=`numfmt --to=iec-i --suffix=B --padding=7 $abyte` # converting it to human readable
+logger -s -t$NOTIFY_NAME -- Added $((cnum+anum)) items, archived $anum items, transfered $totalByte, and archived $archive 
+
+/usr/local/emhttp/webGui/scripts/notify -e "Unraid Server Notice" -s "$NOTIFY_NAME" -d "Synced ${totalByte} in ${min} minutes and ${sec} seconds." -i "normal"

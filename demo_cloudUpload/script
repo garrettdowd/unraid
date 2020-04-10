@@ -1,0 +1,13 @@
+#!/bin/bash
+# description="Uploads books to Google Drive"
+# arrayStarted=true
+# name="Sync Books"
+# noParity=true 
+
+NOTIFY_NAME="Books Sync"
+SOURCE="/mnt/user/Books/" # local unraid path
+DEST="drive_ged12:Books/Library/" #rclone path
+# ARCHIVE="" #where to places files no longer in SOURCE
+# RULES_FILE="/boot/config/plugins/user.scripts/scripts/demo_cloudUpload/rules.txt" #rclone rules on what files/folder to sync
+
+source /boot/config/plugins/user.scripts/scripts/rclone_sync/script # must have the rclone helper script

@@ -1,0 +1,13 @@
+#!/bin/bash
+# description="Backs up Dropbox to local unraid server"
+# arrayStarted=true
+# name="Sync Dropbox"
+# noParity=true 
+
+NOTIFY_NAME="Dropbox Sync"
+SOURCE="dropbox_personal:" # rclone path
+DEST="/mnt/user/Backups/Dropbox/" # local path on unraid
+ARCHIVE="/mnt/user/Backups/Dropbox Archive/" # where to move files that no longer exist on SOURCE
+# RULES_FILE="/boot/config/plugins/user.scripts/scripts/syncGooglePhotos/rules.txt" # rclone rules on which files/folders to sync
+ 
+source /boot/config/plugins/user.scripts/scripts/rclone_sync/script # must have helper script
